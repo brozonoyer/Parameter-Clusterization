@@ -20,12 +20,12 @@ def read_parameters(file):
     :return: parameters: parameter vectors in the format [(parameter_id, parameter)] list
     '''
 
-    data = pd.read_csv(file)
+    data = pd.read_csv(file, header=None)
 
     # scanning of parameters
     # NOTE: depending on the parameters' labels, you will want to add constraints to which items to scan.
     # For example, we only want to scan the "item" column in the "m255_v1.csv" file, etc.
-    parameters = data[[x for x in data.columns]] #if x.startswith("item")]].fillna(0)
+    parameters = data[[x for x in data.columns]]#.fillna(0)# if x.startswith("item")]].fillna(0)
 
     # convert retained parameters into list of (id, vector) to be used in algorithm
     parameter_names = parameters.columns

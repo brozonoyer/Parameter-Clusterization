@@ -251,6 +251,7 @@ class Train():
 
 def output_training_info(input_filename, output_filename, model_pickle_file, num_groups, eigenvalues, logfile, roundoff):
     """
+    Trains the model
     :param input_filename: training parameters file (in csv format)
     :param output_filename: where to write info about extremal groupings
     :param model_pickle_file: where to pickle group factors resulting from extremal groupings
@@ -265,8 +266,6 @@ def output_training_info(input_filename, output_filename, model_pickle_file, num
     T = Train(train_filename=input_filename, num_groups=num_groups, eigenvalues=eigenvalues, logfile=logfile, roundoff=roundoff)
     factors_with_groups = T.iterate() # returns data structure with all the grouping information
 
-    #print(factors_with_groups)
-
     # data structures for writing information to output file
     group2parameters = {triple[0]: tuple([tup[0] for tup in triple[2]]) for triple in factors_with_groups}
     parameter2group = {}
@@ -278,13 +277,17 @@ def output_training_info(input_filename, output_filename, model_pickle_file, num
     group2factor = {group_id:group_factor for (group_id, group_factor, _) in factors_with_groups}
     factors = list(group2factor.values())
     weight_list = [np.inner(group2factor[parameter2group[parameter_id]], parameter) for (parameter_id, parameter) in T.sorted_parameters]
-    #print(factors)
+
     # write to Extremal Groups Info File
     with open(output_filename, "a+") as f:
         f.write("Extremal Groups Info\nBuilt on features\n")
-        f.write(",".join(T.alphabetized_parameter_ids))
+        f.write(",".join(str(T.alphabetized_parameter_ids)))
         f.write("\nnParams," + str(len(T.alphabetized_parameter_ids)))
         f.write("\nnGroups," + str(num_groups))
+        f.write("\nMean\n")
+        f.write(",".join([str(np.mean(parameter)) for (parameter_id, parameter) in T.sorted_parameters]))
+        f.write("\nStDev\n")
+        f.write(",".join([str(np.std(parameter)) for (parameter_id, parameter) in T.sorted_parameters]))
         f.write("\ninGroup, group ids start from 0\n")
         f.write(",".join([str(x) for x in grouping_list]))
         f.write("\nWeights\n")
@@ -298,11 +301,16 @@ def output_training_info(input_filename, output_filename, model_pickle_file, num
 #----------------------------------------------------------------------------------#
 
 def output_inference_info(test_filename, model, output_file):
-
+    """
+    Runs a prediction on test file given a model
+    :param test_filename:
+    :param model:
+    :param output_file:
+    :return:
+    """
     parameters = pi.read_parameters(test_filename)
     with open(model, "rb") as f:
         factors = pickle.load(f)
-    print(factors)
     groups = [list() for factor in factors]
 
     # sort each parameter into a group corresponding to the factor with which it most closely correlates
@@ -319,7 +327,7 @@ def output_inference_info(test_filename, model, output_file):
                 best_correlation = new_correlation
         groups[best_factor_index].append((parameter_id, parameter))
 
-    print(len(groups[1]))
+    #print(len(groups[1]))
 
     # determine factors for each group of new parameters
     group_factors = []
@@ -345,12 +353,12 @@ if __name__ == '__main__':
 
     # required and optional arguments to program
     parser = argparse.ArgumentParser()
-    parser.add_argument("input_filename", help="input file (train if step 1, test if step 2)")
     parser.add_argument("step", type=int, help="step 1 = training\nstep 2 = inference")
+    parser.add_argument("input_filename", help="input file (train if step 1, test if step 2)")
     parser.add_argument("output_filename", help="output file")
     parser.add_argument("model_pickle_file", help="filepath to pickled model (empty if step 1)")
-    parser.add_argument("--num_groups", type=int, help="number of parameter groupings")
-    parser.add_argument("--eigenvalues", type=int, help="number of group correlation matrix eigenvalues to use for calculations of functional's value")
+    parser.add_argument("--num_groups", type=int, help="number of parameter groupings (default is 2)")
+    parser.add_argument("--eigenvalues", type=int, help="number of group correlation matrix eigenvalues to use for calculations of functional's value (default is 1)")
     parser.add_argument("--logfile", help="logfile to store information of run")
     parser.add_argument("--roundoff", type=int, help="roundoff for numbers in calculations (default set to 10)")
 
@@ -384,5 +392,3 @@ if __name__ == '__main__':
 
     #end_time = time.time()
     #print("Time:", end_time - start_time)
-
-    print("Hello world")
